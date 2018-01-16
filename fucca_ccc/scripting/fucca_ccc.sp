@@ -10,7 +10,8 @@ enum ccc_enum
 	String:TagColor[64],
 	String:NameColor[64],
 	String:ChatColor[64],
-	bool:TagCheck
+	bool:TagCheck,
+	bool:DBCheck
 };
 
 new CCC[33][ccc_enum];
@@ -48,7 +49,7 @@ public OnPluginStart()
 	PrintToServer("[ccc] Connection successful.");
 	
 	SQL_SetCharset(db, "utf8");
-	SQL_TQuery(db, SQLErrorCallback, "create table if not exists ccc(steamid varchar(64) not null PRIMARY KEY, name varchar(256) NULL DEFAULT '0', tag varchar(256) NULL DEFAULT '', tag_color varchar(64) NULL DEFAULT '', name_color varchar(64) NULL DEFAULT '', chat_color varchar(64) NULL DEFAULT '') ENGINE=MyISAM DEFAULT CHARSET=utf8;");
+	SQL_TQuery(db, SQLErrorCallback, "create table if not exists ccc(steamid varchar(64) not null PRIMARY KEY, name varchar(256) not null, tag varchar(256) NULL DEFAULT '', tag_color varchar(64) NULL DEFAULT '', name_color varchar(64) NULL DEFAULT '', chat_color varchar(64) NULL DEFAULT '') ENGINE=MyISAM DEFAULT CHARSET=utf8;");
 
 }
 
@@ -58,6 +59,8 @@ public OnClientPutInServer(client)
 	Format(CCC[client][TagColor], 64, "");
 	Format(CCC[client][NameColor], 64, "");
 	CCC[client][TagCheck] = false;
+	CCC[client][DBCheck] = false;
+	
 	CreateTimer(0.5, SqlData, client);
 }
 
@@ -75,7 +78,7 @@ public Action:Command_Say(client, args)
 	{
 		Format(CCC[client][Tag], 256, "%s", CurrentChat);
 		
-		Format(query, sizeof(query), "UPDATE ccc SET tag = '%s' WHERE steamid='%s'", CurrentChat, SteamID);
+		Format(query, sizeof(query), "UPDATE ccc SET name = '%s', tag = '%s' WHERE steamid='%s'", UpdateName(client), CurrentChat, SteamID);
 		SQL_TQuery(db, SQLErrorCallback, query);
 		
 		PrintToChat(client, "\x03적용되었습니다.");
@@ -92,6 +95,17 @@ public Action:ccc(client, args)
 		PrintToChat(client, "\x03당신은 그룹원이 아닙니다");
 		return Plugin_Handled;
 	}
+	
+	if(CCC[client][DBCheck])
+	{
+		new String:query[256]; decl String:SteamID[32];
+		GetClientAuthId(client, AuthId_Steam2, SteamID, sizeof(SteamID));
+
+		Format(query, 256, "insert into ccc (steamid, name) VALUES ('%s', '%s');", SteamID, UpdateName(client));
+		SQL_TQuery(db, SQLErrorCallback, query);
+		CCC[client][DBCheck] = false;
+	}
+	
 	new Handle:info = CreateMenu(SelectCCC);
 	SetMenuTitle(info, "태그 설정");
 	AddMenuItem(info, "tag name", "태그 설정");  
@@ -233,14 +247,7 @@ public SQLQueryLoad(Handle:owner, Handle:hndl, const String:error[], any:client)
 			}
 		}
 	}
-	else
-	{
-		new String:query[256]; decl String:SteamID[32];
-		GetClientAuthId(client, AuthId_Steam2, SteamID, sizeof(SteamID));
-
-		Format(query, 256, "insert into ccc (steamid, name) VALUES ('%s', '%s');", SteamID, UpdateName(client));
-		SQL_TQuery(db, SQLErrorCallback, query);
-	}
+	else CCC[client][DBCheck] = true;
 }
 
 public SQLErrorCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
