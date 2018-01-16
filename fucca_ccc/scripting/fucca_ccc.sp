@@ -255,6 +255,7 @@ public SQLErrorCallback(Handle:owner, Handle:hndl, const String:error[], any:dat
     return false;
 }
 
+public OnMapStart() ConfigFucca();
 public OnMapEnd() for(new i = 0 ; i < 500 && i < MaxItem; i++) if(kv[i] != INVALID_HANDLE) CloseHandle(kv[i]);
 
 public ConfigFucca()
