@@ -158,18 +158,18 @@ public SelectColor(Handle:menu, MenuAction:action, client, select)
 		if(StrEqual(aa[0], "tag"))
 		{
 			Format(CCC[client][TagColor], 64, aa[1]);
-			Format(query, sizeof(query), "UPDATE ccc SET tag_color = '%s' WHERE steamid='%s'", aa[1], SteamID);
+			Format(query, sizeof(query), "UPDATE ccc SET name = '%s', tag_color = '%s' WHERE steamid='%s'", UpdateName(client), aa[1], SteamID);
 		}
 	
 		else if(StrEqual(aa[0], "name"))
 		{
 			Format(CCC[client][NameColor], 64, aa[1]);
-			Format(query, sizeof(query), "UPDATE ccc SET name_color = '%s' WHERE steamid='%s'", aa[1], SteamID);
+			Format(query, sizeof(query), "UPDATE ccc SET name = '%s', name_color = '%s' WHERE steamid='%s'", UpdateName(client), aa[1], SteamID);
 		}
 		else if(StrEqual(aa[0], "chat"))
 		{
 			Format(CCC[client][ChatColor], 64, aa[1]);
-			Format(query, sizeof(query), "UPDATE ccc SET chat_color = '%s' WHERE steamid='%s'", aa[1], SteamID);
+			Format(query, sizeof(query), "UPDATE ccc SET name = '%s', chat_color = '%s' WHERE steamid='%s'", UpdateName(client), aa[1], SteamID);
 		}
 		PrintToChat(client, "\x03설정되었습니다.");
 		SQL_TQuery(db, SQLErrorCallback, query);
@@ -211,6 +211,7 @@ public SQLQueryLoad(Handle:owner, Handle:hndl, const String:error[], any:client)
 {
 	if(!IsClientInGame(client)) return;
 	if(hndl == INVALID_HANDLE) LogError("Query failed: %s", error);
+	
 	else if(SQL_GetRowCount(hndl) > 0)
 	{
 		if(SQL_HasResultSet(hndl))
@@ -218,19 +219,12 @@ public SQLQueryLoad(Handle:owner, Handle:hndl, const String:error[], any:client)
 			while(SQL_FetchRow(hndl))
 			{
 				decl String:tag[64], String:tagc[64], String:namec[64], String:chatc[64], String:SteamID[32];
-				decl String:old_name[MAX_NAME_LENGTH], String:new_name[(MAX_NAME_LENGTH*2)+1], String:query[256];
-				
-				GetClientName(client, old_name, sizeof(old_name));
-				SQL_EscapeString(db, old_name, new_name, sizeof(new_name));
 				GetClientAuthId(client, AuthId_Steam2, SteamID, sizeof(SteamID));
 				
 				SQL_FetchString(hndl, 2, tag, sizeof(tag));
 				SQL_FetchString(hndl, 3, tagc, sizeof(tagc));
 				SQL_FetchString(hndl, 4, namec, sizeof(namec));
 				SQL_FetchString(hndl, 5, chatc, sizeof(chatc));
-				
-				Format(query, sizeof(query), "UPDATE ccc SET name='%s' WHERE steamid='%s'", new_name, SteamID);
-				SQL_TQuery(db, SQLErrorCallback, query);
 
 				if(!StrEqual(tag, "")) Format(CCC[client][Tag], 256, tag);
 				if(!StrEqual(tagc, "")) Format(CCC[client][TagColor], 64, tagc);
@@ -241,10 +235,10 @@ public SQLQueryLoad(Handle:owner, Handle:hndl, const String:error[], any:client)
 	}
 	else
 	{
-		decl String:SteamID[32], String:query[256];
+		new String:query[256]; decl String:SteamID[32];
 		GetClientAuthId(client, AuthId_Steam2, SteamID, sizeof(SteamID));
 
-		Format(query, 256, "insert into ccc (steamid) VALUES ('%s');", SteamID);
+		Format(query, 256, "insert into ccc (steamid, name) VALUES ('%s', '%s');", SteamID, UpdateName(client));
 		SQL_TQuery(db, SQLErrorCallback, query);
 	}
 }
@@ -284,4 +278,13 @@ public ConfigFucca()
 	}
 	CloseHandle(DB);
 	MaxItem = count;
+}
+
+stock String:UpdateName(client)
+{
+	decl String:old_name[MAX_NAME_LENGTH], String:new_name[(MAX_NAME_LENGTH*2)+1];
+        
+	GetClientName(client, old_name, sizeof(old_name));
+	SQL_EscapeString(db, old_name, new_name, sizeof(new_name));
+	return new_name;
 }
