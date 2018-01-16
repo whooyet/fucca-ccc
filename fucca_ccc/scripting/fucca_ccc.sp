@@ -22,7 +22,7 @@ public Plugin myinfo =
 	name = "Simple Fucca CCC",
 	author = "뿌까",
 	description = "하하하하",
-	version = "1.0",
+	version = "1.2",
 	url = "x"
 };
 
